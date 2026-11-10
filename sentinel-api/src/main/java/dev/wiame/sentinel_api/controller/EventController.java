@@ -1,16 +1,16 @@
 package dev.wiame.sentinel_api.controller;
+
+import dev.wiame.sentinel_api.dto.CreateEventRequest;
 import dev.wiame.sentinel_api.model.SecurityEvents;
 import dev.wiame.sentinel_api.service.EventService;
-import java.util.Map;
+import jakarta.validation.Valid;
 import java.util.List;
-
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-;
+import java.util.Map;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping ("/api")
+@RequestMapping("/api")
 public class EventController {
     private final EventService eventService;
 
@@ -24,7 +24,14 @@ public class EventController {
     }
 
     @GetMapping("/health")
-    public Map<String,String> health(){
+    public Map<String, String> health() {
         return Map.of("status", "UP");
+    }
+
+    @PostMapping("/events")
+    @ResponseStatus(HttpStatus.CREATED)
+    public SecurityEvents create(@Valid @RequestBody CreateEventRequest request) {
+        SecurityEvents event = eventService.add(request.rule(), request.priority(), request.namespace(), request.pod());
+        return event;
     }
 }

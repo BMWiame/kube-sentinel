@@ -1,0 +1,3 @@
+{
+    "rule": "Terminal shell in container", "priority": "NOTICE", "namespace": "demo", "pod": "victim-1"
+}
