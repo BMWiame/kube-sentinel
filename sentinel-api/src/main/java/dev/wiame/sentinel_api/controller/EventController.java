@@ -34,4 +34,9 @@ public class EventController {
         SecurityEvents event = eventService.add(request.rule(), request.priority(), request.namespace(), request.pod());
         return event;
     }
+    @PostMapping("/ingest/falco")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public void ingestFalco(@RequestBody String json){
+        eventService.ingest(json);
+    }
 }

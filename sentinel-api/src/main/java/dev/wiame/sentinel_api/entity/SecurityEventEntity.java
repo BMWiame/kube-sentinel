@@ -7,6 +7,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Column;
 
 @Entity
 @Table(name= "security_events")
@@ -46,6 +47,17 @@ public class SecurityEventEntity {
     public Instant getEventTime(){
         return eventTime;
     }
+
+
+    @Column(columnDefinition = "text")
+    private String rawJson;
+    public String getRawJson(){
+            return rawJson;
+        }
+
+    public void setRawJson(String rawJson){
+            this.rawJson=rawJson;
+        }
 
 
 }
