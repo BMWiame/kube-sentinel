@@ -11,15 +11,16 @@ import org.mockito.Mockito;
 import dev.wiame.sentinel_api.adapter.FalcoAlertAdapter;
 import dev.wiame.sentinel_api.model.SecurityEvents;
 import dev.wiame.sentinel_api.repository.EventRepository;
-
+import dev.wiame.sentinel_api.observer.EventSubject;
 class EventServiceTest {
 
     @Test
     void addSavesAndReturnsRecord() {
         FalcoAlertAdapter adapter = new FalcoAlertAdapter();
         EventRepository repository = Mockito.mock(EventRepository.class);
+        EventSubject subject = Mockito.mock(EventSubject.class);
         Mockito.when(repository.save(Mockito.any())).thenAnswer(inv -> inv.getArgument(0));
-        EventService service = new EventService(repository, adapter);
+        EventService service = new EventService(repository, adapter, subject);
 
         SecurityEvents created = service.add("Terminal shell in container", "NOTICE", "demo", "victim-1");
 
@@ -31,23 +32,24 @@ class EventServiceTest {
     @Test
     void ingestSavesTheRealShellAlertOnce() throws Exception {
         EventRepository repository = Mockito.mock(EventRepository.class);
-        EventService service = new EventService(repository, new FalcoAlertAdapter());
+        EventSubject subject = Mockito.mock(EventSubject.class);
+        EventService service = new EventService(repository, new FalcoAlertAdapter(), subject);
         String json = new String(
                 getClass().getResourceAsStream("/falco-shell.json").readAllBytes(),
                 StandardCharsets.UTF_8);
 
         service.ingest(json);
 
-        Mockito.verify(repository).save(Mockito.any());
+        Mockito.verify(subject).publish(Mockito.any());
     }
 
     @Test
     void ingestNeverSavesAlertWithoutNamespace() {
         EventRepository repository = Mockito.mock(EventRepository.class);
-        EventService service = new EventService(repository, new FalcoAlertAdapter());
+        EventSubject subject = Mockito.mock(EventSubject.class);
+        EventService service = new EventService(repository, new FalcoAlertAdapter(), subject);
 
         service.ingest("{\"rule\":\"x\"}");
 
-        Mockito.verify(repository, Mockito.never()).save(Mockito.any());
+        Mockito.verify(subject, Mockito.never()).publish(Mockito.any());}
     }
-}

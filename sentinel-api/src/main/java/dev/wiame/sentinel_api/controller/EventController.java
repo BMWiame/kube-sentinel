@@ -1,13 +1,20 @@
 package dev.wiame.sentinel_api.controller;
 
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
 import dev.wiame.sentinel_api.dto.CreateEventRequest;
 import dev.wiame.sentinel_api.model.SecurityEvents;
 import dev.wiame.sentinel_api.service.EventService;
 import jakarta.validation.Valid;
-import java.util.List;
-import java.util.Map;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api")
