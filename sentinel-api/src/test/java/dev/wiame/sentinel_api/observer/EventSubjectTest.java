@@ -1,7 +1,8 @@
 package dev.wiame.sentinel_api.observer;
 
-import dev.wiame.sentinel_api.model.IngestedEvent;
+import dev.wiame.sentinel_api.model.ScoredEvent;
 import dev.wiame.sentinel_api.model.SecurityEvents;
+import dev.wiame.sentinel_api.model.Severity;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -15,15 +16,15 @@ class EventSubjectTest {
     @Test
     void publishNotifiesSubscribedObserver() {
         EventSubject subject = new EventSubject();
-        List<IngestedEvent> received = new ArrayList<>();
+        List<ScoredEvent> received = new ArrayList<>();
 
         subject.subscribe(event -> received.add(event));
 
         SecurityEvents securityEvent =
                 new SecurityEvents("shell in container", "HIGH", "demo", "victim", Instant.now());
-        IngestedEvent ingested = new IngestedEvent(securityEvent, "{\"rule\":\"shell in container\"}");
+        ScoredEvent scored = new ScoredEvent(securityEvent, Severity.LOW, "{\"rule\":\"shell in container\"}");
 
-        subject.publish(ingested);
+        subject.publish(scored);
 
         assertThat(received).hasSize(1);
     }
@@ -31,17 +32,18 @@ class EventSubjectTest {
     @Test
     void publishNotifiesAllSubscribedObservers() {
         EventSubject subject = new EventSubject();
-        List<IngestedEvent> firstReceived = new ArrayList<>();
-        List<IngestedEvent> secondReceived = new ArrayList<>();
+        List<ScoredEvent> firstReceived = new ArrayList<>();
+        List<ScoredEvent> secondReceived = new ArrayList<>();
 
         subject.subscribe(event -> firstReceived.add(event));
         subject.subscribe(event -> secondReceived.add(event));
 
-        IngestedEvent ingested = new IngestedEvent(
+        ScoredEvent scored = new ScoredEvent(
                 new SecurityEvents("shell in container", "HIGH", "demo", "victim", Instant.now()),
+                Severity.LOW,
                 "{}");
 
-        subject.publish(ingested);
+        subject.publish(scored);
 
         assertThat(firstReceived).hasSize(1);
         assertThat(secondReceived).hasSize(1);
@@ -50,17 +52,18 @@ class EventSubjectTest {
     @Test
     void unsubscribedObserverReceivesNothing() {
         EventSubject subject = new EventSubject();
-        List<IngestedEvent> received = new ArrayList<>();
+        List<ScoredEvent> received = new ArrayList<>();
         EventObserver observer = event -> received.add(event);
 
         subject.subscribe(observer);
         subject.unsubscribe(observer);
 
-        IngestedEvent ingested = new IngestedEvent(
+        ScoredEvent scored = new ScoredEvent(
                 new SecurityEvents("shell in container", "HIGH", "demo", "victim", Instant.now()),
+                Severity.LOW,
                 "{}");
 
-        subject.publish(ingested);
+        subject.publish(scored);
 
         assertThat(received).isEmpty();
     }
