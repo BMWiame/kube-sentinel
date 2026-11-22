@@ -44,6 +44,6 @@ public class EventController {
     @PostMapping("/ingest/falco")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public void ingestFalco(@RequestBody String json){
-        eventService.ingest(json);
+        eventService.ingest(json,true );
     }
 }

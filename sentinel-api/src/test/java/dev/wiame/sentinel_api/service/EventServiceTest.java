@@ -46,7 +46,7 @@ class EventServiceTest {
                 getClass().getResourceAsStream("/falco-shell.json").readAllBytes(),
                 StandardCharsets.UTF_8);
 
-        service.ingest(json);
+        service.ingest(json,true);
 
         ArgumentCaptor<ScoredEvent> captor = ArgumentCaptor.forClass(ScoredEvent.class);
         Mockito.verify(subject).publish(captor.capture());
@@ -61,7 +61,7 @@ class EventServiceTest {
         ScoringService scoringService = Mockito.mock(ScoringService.class);
         EventService service = new EventService(repository, new FalcoAlertAdapter(), subject, scoringService);
 
-        service.ingest("{\"rule\":\"x\"}");
+        service.ingest("{\"rule\":\"x\"}",true );
 
         Mockito.verify(subject, Mockito.never()).publish(Mockito.any());
         Mockito.verifyNoInteractions(scoringService);

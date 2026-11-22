@@ -45,18 +45,19 @@ public class EventService {
         return toRecord(saved);
     }
 
-    public void ingest(String json) {
+    public ScoredEvent ingest(String json, boolean dedupe) {
         SecurityEvents event = adapter.adapt(json);
         String namespace = event.namespace();
 
-        if (namespace == null || namespace.isBlank() || namespace.equals("unknown")) {
+        if (namespace == null || namespace.isBlank() || namespace.equals("unknown")|| namespace.equals("null")) {
             log.info("Ignored non-Kubernetes alert");
-            return;
+            return null;
         }
 
         Severity severity = scoringService.score(event);
         ScoredEvent scoredEvent = new ScoredEvent(event, severity, json);
         subject.publish(scoredEvent);
+        return scoredEvent;
     }
 
     public SecurityEvents toRecord(SecurityEventEntity e) {

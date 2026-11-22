@@ -1,0 +1,33 @@
+{
+    "uuid": "b2e4d6f3-8c95-4f7b-a021-4e6f9a3c2b02",
+    "output": "20:01:28.404438959: Error Package management process launched in container | evt_type=execve user=root user_uid=0 user_loginuid=-1 process=apt-get proc_exepath=/usr/bin/apt-get parent=bash command=apt-get install -y curl terminal=34816 container_id=9098860a0606 container_name=nginx container_image_repository=docker.io/library/nginx container_image_tag=latest k8s_pod_name=victim-package-5b7c9d8f66-m4nvw k8s_ns_name=demo",
+    "priority": "Error",
+    "rule": "Launch Package Management Process in Container",
+    "time": "2026-11-12T20:01:28.404438959Z",
+    "output_fields": {
+        "container.id": "9098860a0606",
+        "container.image.repository": "docker.io/library/nginx",
+        "container.image.tag": "latest",
+        "container.name": "nginx",
+        "evt.time": 1794513688404438959,
+        "evt.type": "execve",
+        "k8s.ns.name": "demo",
+        "k8s.pod.name": "victim-package-5b7c9d8f66-m4nvw",
+        "proc.cmdline": "apt-get install -y curl",
+        "proc.exepath": "/usr/bin/apt-get",
+        "proc.name": "apt-get",
+        "proc.pname": "bash",
+        "proc.tty": 34816,
+        "user.loginuid": -1,
+        "user.name": "root",
+        "user.uid": 0
+    },
+    "source": "syscall",
+    "tags": [
+        "container",
+        "maturity_stable",
+        "mitre_persistence",
+        "software_mgmt"
+    ],
+    "hostname": "sentinel-control-plane"
+}
