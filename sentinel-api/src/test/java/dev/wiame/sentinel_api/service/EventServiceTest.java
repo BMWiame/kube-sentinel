@@ -2,6 +2,8 @@ package dev.wiame.sentinel_api.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.Mockito.times;
 
 import java.nio.charset.StandardCharsets;
 
@@ -18,6 +20,12 @@ import dev.wiame.sentinel_api.repository.EventRepository;
 import dev.wiame.sentinel_api.scoring.ScoringService;
 
 class EventServiceTest {
+
+    private String shellJson() throws Exception {
+        return new String(
+                getClass().getResourceAsStream("/falco-shell.json").readAllBytes(),
+                StandardCharsets.UTF_8);
+    }
 
     @Test
     void addSavesAndReturnsRecord() {
@@ -42,16 +50,15 @@ class EventServiceTest {
         ScoringService scoringService = Mockito.mock(ScoringService.class);
         Mockito.when(scoringService.score(Mockito.any())).thenReturn(Severity.HIGH);
         EventService service = new EventService(repository, new FalcoAlertAdapter(), subject, scoringService);
-        String json = new String(
-                getClass().getResourceAsStream("/falco-shell.json").readAllBytes(),
-                StandardCharsets.UTF_8);
+        String json = shellJson();
 
-        service.ingest(json,true);
+        ScoredEvent result = service.ingest(json, true);
 
         ArgumentCaptor<ScoredEvent> captor = ArgumentCaptor.forClass(ScoredEvent.class);
         Mockito.verify(subject).publish(captor.capture());
         assertEquals(Severity.HIGH, captor.getValue().severity());
         assertEquals(json, captor.getValue().rawJson());
+        assertEquals(captor.getValue(), result);
     }
 
     @Test
@@ -61,9 +68,42 @@ class EventServiceTest {
         ScoringService scoringService = Mockito.mock(ScoringService.class);
         EventService service = new EventService(repository, new FalcoAlertAdapter(), subject, scoringService);
 
-        service.ingest("{\"rule\":\"x\"}",true );
+        ScoredEvent result = service.ingest("{\"rule\":\"x\"}", true);
 
+        assertNull(result);
         Mockito.verify(subject, Mockito.never()).publish(Mockito.any());
         Mockito.verifyNoInteractions(scoringService);
+    }
+
+    @Test
+    void dedupeTrueDropsSecondIdenticalAlert() throws Exception {
+        EventRepository repository = Mockito.mock(EventRepository.class);
+        EventSubject subject = Mockito.mock(EventSubject.class);
+        ScoringService scoringService = Mockito.mock(ScoringService.class);
+        Mockito.when(scoringService.score(Mockito.any())).thenReturn(Severity.HIGH);
+        EventService service = new EventService(repository, new FalcoAlertAdapter(), subject, scoringService);
+        String json = shellJson();
+
+        ScoredEvent first = service.ingest(json, true);
+        ScoredEvent second = service.ingest(json, true);
+
+        assertNotNull(first);
+        assertNull(second);
+        Mockito.verify(subject, times(1)).publish(Mockito.any());
+    }
+
+    @Test
+    void dedupeFalsePublishesBothAlerts() throws Exception {
+        EventRepository repository = Mockito.mock(EventRepository.class);
+        EventSubject subject = Mockito.mock(EventSubject.class);
+        ScoringService scoringService = Mockito.mock(ScoringService.class);
+        Mockito.when(scoringService.score(Mockito.any())).thenReturn(Severity.HIGH);
+        EventService service = new EventService(repository, new FalcoAlertAdapter(), subject, scoringService);
+        String json = shellJson();
+
+        service.ingest(json, false);
+        service.ingest(json, false);
+
+        Mockito.verify(subject, times(2)).publish(Mockito.any());
     }
 }

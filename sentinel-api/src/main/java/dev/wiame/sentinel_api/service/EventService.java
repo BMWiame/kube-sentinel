@@ -1,5 +1,6 @@
 package dev.wiame.sentinel_api.service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
@@ -15,7 +16,8 @@ import dev.wiame.sentinel_api.model.Severity;
 import dev.wiame.sentinel_api.observer.EventSubject;
 import dev.wiame.sentinel_api.repository.EventRepository;
 import dev.wiame.sentinel_api.scoring.ScoringService;
-
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class EventService {
     private final EventRepository repository;
@@ -23,7 +25,7 @@ public class EventService {
     private final EventSubject subject;
     private final ScoringService scoringService;
     private static final Logger log = LoggerFactory.getLogger(EventService.class);
-
+    private final Map<String, Instant> lastSeen = new ConcurrentHashMap<>();
     public EventService(EventRepository repository, FalcoAlertAdapter adapter,
                         EventSubject subject, ScoringService scoringService) {
         this.repository = repository;
@@ -53,7 +55,15 @@ public class EventService {
             log.info("Ignored non-Kubernetes alert");
             return null;
         }
-
+        if(dedupe){
+            String key =event.rule() + "|" + event.pod();
+            Instant now = Instant.now();
+            Instant previous = lastSeen.get(key);
+            if(previous != null && Duration.between(previous, now).getSeconds()< 30){
+                return null;
+            }
+            lastSeen.put(key, now);
+        }
         Severity severity = scoringService.score(event);
         ScoredEvent scoredEvent = new ScoredEvent(event, severity, json);
         subject.publish(scoredEvent);
