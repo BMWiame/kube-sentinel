@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Kube Sentinel Console</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; background: #fafafa; color: #222; }
+    h1 { margin-bottom: 0.5rem; }
+    .controls { display: flex; gap: 1rem; align-items: center; margin: 1rem 0; }
+    .hint { margin: 0.5rem 0; }
+    #replay { font-size: 0.75rem; padding: 0.25rem 0.6rem; background: #ddd; color: #666;
+              border: 1px solid #bbb; border-radius: 4px; cursor: pointer; }
+    #replay:hover { background: #ccc; }
+    table { border-collapse: collapse; width: 100%; background: #fff; }
+    th, td { border: 1px solid #ddd; padding: 0.4rem 0.7rem; text-align: left; }
+    th { background: #f0f0f0; }
+    /* Step 5: one class per severity */
+    .sev-LOW      { background: #c8e6c9; }
+    .sev-MEDIUM   { background: #fff59d; }
+    .sev-HIGH     { background: #ffcc80; }
+    .sev-CRITICAL { background: #ef9a9a; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Kube Sentinel Console</h1>
+
+  <!-- Step 2: strategy dropdown (values must match ConfigController: rule, namespace, highest) -->
+  <div class="controls">
+    <label for="mode">Strategy:</label>
+    <select id="mode">
+      <option value="rule"      th:selected="${#strings.equalsIgnoreCase(#strings.toString(mode), 'rule')}">By rule name (severity from the Falco rule)</option>
+      <option value="namespace" th:selected="${#strings.equalsIgnoreCase(#strings.toString(mode), 'namespace')}">By namespace (severity from where it happened)</option>
+      <option value="highest"   th:selected="${#strings.equalsIgnoreCase(#strings.toString(mode), 'highest')}">Highest (takes the worst severity of the other two)</option>
+    </select>
+  </div>
+
+  <!-- Step 4: hint line first, button after -->
+  <p class="hint">Real path: run <code>kubectl exec</code> into the victim pod.</p>
+  <button id="replay" type="button">Replay recorded attack</button>
+
+  <!-- Step 1: server-rendered table. Entity getters: eventTime, ruleName -->
+  <table>
+    <thead>
+      <tr>
+        <th>Time</th><th>Rule</th><th>Namespace</th><th>Pod</th><th>Severity</th>
+      </tr>
+    </thead>
+    <tbody id="events-body">
+      <tr th:each="e : ${events}">
+        <td th:text="${e.eventTime}">time</td>
+        <td th:text="${e.ruleName}">rule</td>
+        <td th:text="${e.namespace}">namespace</td>
+        <td th:text="${e.pod}">pod</td>
+        <td th:text="${e.severity}" th:classappend="${'sev-' + e.severity}">severity</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Step 3: stompjs pinned at 7.0.0 (global: StompJs) -->
+  <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
+  <script>
+    const tbody = document.getElementById('events-body');
+
+    // Step 2: change strategy
+    document.getElementById('mode').addEventListener('change', (ev) => {
+      fetch('/api/config/scoring-mode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: ev.target.value })
+      })
+        .then(r => { if (!r.ok) console.error('strategy change rejected:', r.status, ev.target.value); })
+        .catch(err => console.error('strategy change failed', err));
+    });
+
+    // Step 3: EventView fields are time, rule, namespace, pod, severity
+    function addRow(e) {
+      const tr = document.createElement('tr');
+      [e.time, e.rule, e.namespace, e.pod, e.severity].forEach((value, i) => {
+        const td = document.createElement('td');
+        td.textContent = value;
+        if (i === 4) td.className = 'sev-' + e.severity; // Step 5
+        tr.appendChild(td);
+      });
+      tbody.prepend(tr);
+      while (tbody.rows.length > 50) tbody.deleteRow(-1);
+    }
+
+    
+    const client = new StompJs.Client({
+      brokerURL: (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws',
+      reconnectDelay: 3000
+    });
+    client.onConnect = () => {
+      client.subscribe('/topic/events', (msg) => addRow(JSON.parse(msg.body)));
+    };
+    client.activate();
+
+    // Step 4: replay
+    document.getElementById('replay').addEventListener('click', () => {
+      fetch('/api/simulate', { method: 'POST' })
+        .catch(err => console.error('simulate failed', err));
+    });
+  </script>
+</body>
+</html>

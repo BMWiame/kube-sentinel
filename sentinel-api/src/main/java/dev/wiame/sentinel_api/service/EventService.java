@@ -78,4 +78,7 @@ public class EventService {
                 e.getPod(),
                 e.getEventTime());
     }
+    public List<SecurityEventEntity> latest(){
+        return repository.findTop50ByOrderByIdDesc();
+    }
 }
