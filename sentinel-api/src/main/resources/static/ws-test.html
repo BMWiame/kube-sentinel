@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<body>
+<pre id="out"></pre>
+<script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
+<script>
+  const out = document.getElementById('out');
+  const log = line => { out.textContent += line + '\n'; };
+
+  const client = new StompJs.Client({ brokerURL: 'ws://' + location.host + '/ws' });
+
+  client.onConnect = () => {
+    log('connected');
+    client.subscribe('/topic/events', m => log(m.body));
+  };
+  client.onStompError = f => log('STOMP error: ' + f.headers['message']);
+  client.onWebSocketError = () => log('WebSocket error (server down? origin not allowed?)');
+
+  client.activate();
+</script>
+</body>
+</html>
